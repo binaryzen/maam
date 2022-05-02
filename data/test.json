@@ -1,0 +1,55 @@
+{
+  "MetricDataResults": [
+    {
+      "Id":"m0",
+      "Label":"ZapposMyAccount-EC2:CPUUtilization",
+      "Values":[10,20,30,4,5.3]
+    },
+    {
+      "Id":"m1",
+      "Label":"ZapposMyAccount-EC2:EC2_NUM_HOSTS",
+      "Values":[1,2,3,4,5]
+    },
+    {
+      "Id":"m2",
+      "Label":"ZapposMyAccount-EC2:HTTPCode_Backend_4XX",
+      "Values":[11,30,20,13,25]
+    },
+    {
+      "Id":"m3",
+      "Label":"ZapposMyAccount-EC2:EC2_ERR_RATE",
+      "Values":[1,2,3,4,5]
+    },
+    {
+      "Id":"m4",
+      "Label":"ZapposMyAccount-EC2:EC2_LATENCY",
+      "Values":[100,200,300,400,500]
+    },
+    {
+      "Id":"m5",
+      "Label":"ZapposMyAccount-EC2:EC2_ALARM",
+      "Values":[0,0,0,0,1]
+    },
+    {
+      "Id": "m6",
+      "Label": "ZapposMyAccount-EC2:HTTPCode_Backend_5XX",
+      "Values": [
+        30,
+        20,
+        10,
+        20,
+        10
+      ]
+    },
+    {
+      "Id": "m7",
+      "Label": "ZapposMyAccount-EC2:RequestCount",
+      "Values": [120011,201222,122,61,8232]
+    },
+    {
+      "Id": "m8",
+      "Label": "ZapposMyAccount-EC2:StatusCheckFailed",
+      "Values": [0,0,1,0,0]
+    }
+  ]
+}

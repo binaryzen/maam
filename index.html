@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>MAAM</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
+	<style>
+		body { margin: 0; padding: 0; font-size: 0; }
+		canvas { width: 100%; height: 100%; }
+		.hidden {
+			display:none;
+		}
+		.container-fluid {
+			padding-left: 0px;
+			padding-right: 0px;
+		}
+		.footer {
+			position: absolute;
+			white-space: nowrap;
+			bottom: 0;
+			width: 100%;
+			height: 200px;
+			background-color: #161224;
+			font-size: 1.5rem;
+			color: #ffffff;
+			padding-top: 10px;
+			border-top-style: solid;
+			border-top-color: lightgray;
+			border-top-width: 2px;
+		}
+		#dialogue {
+			/* position: absolute;
+			top: 0;
+			width: 27%;
+			height: 100%;
+			background-color: #161224; */
+			font-size: 1.1rem;
+			font-family: "Audiowide", sans-serif;
+			color: #9ffbe0;
+			/* padding-top: 10px;
+			padding-left: 10px;
+			padding-right: 10px;
+			border-right-style: solid;
+			border-right-color: lightgray;
+			border-right-width: 4px; */
+		}
+	</style>
+	<script src="lib/three.js/three.min.js"></script>
+	<script src="lib/three.js/OrbitControls.js"></script>
+	<script src="lib/lodash/lodash-4.17.15.min.js"></script>
+
+	<script src="lib/global.js"></script>
+	<script src="lib/data.js"></script>
+	<script src="lib/3dview.js"></script>
+	<script src="lib/timeline.js"></script>
+	<script src="lib/tween.umd.js"></script>
+	<script src="lib/visualizers.js"></script>
+	<script src="lib/httpResponse.js"></script>
+	<script src="lib/ec2.js"></script>
+	<script src="lib/ecs.js"></script>
+	<script src="lib/es.js"></script>
+	<script src="lib/sns.js"></script>
+	<script src="lib/dynamo.js"></script>
+	<script src="lib/music.js"></script>
+	<script src="lib/layout.js"></script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+</head>
+<body>
+	<div id="renderer" class="container-fluid">
+
+	</div>
+	<footer class="footer">
+		<div class="container">
+			<div class="row g-0">
+				<div class="col-md-6">
+					<div id="dialogue"></div>
+				</div>
+				<div class="col-md-6">
+					<div class="row">
+						<div id="position-slider-container" class="col-md-12">
+							<input id="position-slider" type="range" min="0" max="4096" value="0" class="form-control" />
+						</div>
+					</div>
+					<div class="row" style="padding-top: 10px;">
+						<div class="col-md-5">
+							<div class="input-group">
+								<span class="input-group-addon glyphicon glyphicon-volume-down" id="volume-down-icon"></span>
+								<input id="volume-slider" type="range" min="0" max="100" value="25" class="form-control" />
+								<span class="input-group-addon glyphicon glyphicon-volume-up" id="volume-up-icon"></span>
+							</div>
+						</div>
+						<div class="col-md-5 text-center">
+							<div id="music-selection-buttons" class="btn-group" data-toggle="buttons">
+								<label class="btn btn-primary active">
+									<input type="radio" name="music-selection" id="music-selection-option-off" checked> Off
+								</label>
+								<label class="btn btn-primary">
+									  <input type="radio" name="music-selection" id="music-selection-option-track-1"> Track 1
+								</label>
+								<label class="btn btn-primary">
+									<input type="radio" name="music-selection" id="music-selection-option-track-2"> Track 2
+								</label>
+							</div>
+						</div>
+						<div class="col-md-2 justify-content-end">
+							<button type="button" class="btn btn-primary" onclick="changeCameraPreset()">Change Camera Preset</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</footer>
+
+	<body>
+	<canvas id="canvas" width="400" height="200" style="display:none;"></canvas>
+	<div id="canvas-frame"></div>
+	</body>
+
+	<script>
+		var rendererDiv = document.getElementById('renderer');
+		rendererDiv.appendChild(renderer.domElement);
+		var positionSlider = $( "#position-slider" );
+		var volumeSlider = $( "#volume-slider" );
+		positionSlider.on( 'input', function() {
+		  timelineController.p = positionSlider.val()/4096;
+		});
+		volumeSlider.on( 'input', function() {
+			AUD.volume = volumeSlider.val() / 100;
+		});
+		volumeSlider.val(25);
+		//
+		// handle resize events
+		//
+		window.addEventListener('resize', _.throttle(handleResize, 100, { trailing: true }));
+		let labelRenderer;
+		//
+		// handle music selection
+		//
+		$("#music-selection-buttons :input").change(function() {
+    		jamz(this);
+		});
+		//
+		// download data
+		//
+		var loaded = 0;
+		function loadNext() {
+		    let file = dataFiles[loaded];
+            $.ajax({
+              url: file,
+              success: (data) => {
+                updateUIControls(0);
+                marshallData(data);
+                if (++loaded >= dataFiles.length) {
+				  initializeData();
+                  updateData({data: timelineController.timeline.lrf.data});
+                  layout();
+                  render(0);
+				  // TWEEN.update();
+                }
+                else {
+                    loadNext();
+                }
+              }
+            });
+        }
+		loadNext();
+
+
+		$(document).on('mousemove', function(event) {DIALOGUE.handleMouseMove(event)});
+  </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SQS Viz</title>
+    <style>
+		body { margin: 0; padding: 0; font-size: 0; }
+		canvas { width: 100%; height: 100%; }
+		.hidden {
+			display:none;
+		}
+		.scrubber {
+			position:fixed;
+			bottom:30px; left:30px; right:30px;
+			text-align: center;
+		}
+		input#position-slider { width:100%; }
+		.scrubber p { font:10pt monospace; color:#66FF66; }
+	</style>
+    <script src="lib/three.js/three.min.js"></script>
+    <script src="lib/three.js/OrbitControls.js"></script>
+    <script src="lib/tween.umd.js"></script>
+    <script src="lib/global.js"></script>
+    <script src="lib/data.js"></script>
+    <script src="lib/3dview.js"></script>
+    <script src="lib/timeline.js"></script>
+    <script src="lib/visualizers.js"></script>
+    <script src="lib/music.js"></script>
+    <script src="lib/ecs.js"></script>
+    <script src="lib/httpResponse.js"></script>
+    <script src="lib/ec2.js"></script>
+    <script src="lib/es.js"></script>
+    <script src="lib/sns.js"></script>
+    <script src="lib/dynamo.js"></script>
+    <script src="lib/layout.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="scrubber">
+    <p id="status"></p>
+    <p>
+        <input id="position-slider" type="range" min="0" max="4096" value="0" class="slider" />
+    </p>
+    <p>
+        <input id="volume-slider" type="range" min="0" max="100" value="25" class="slider" />
+        <br/><label id="volume-label" for="volume-slider" />Volume</label>
+    </p>
+    <p>
+        <script>
+        var loaded = 0;
+		document.body.appendChild(renderer.domElement);
+		//
+		// prep slider controls for timelineController
+		//
+		var positionSlider = $( "#position-slider" );
+		var volumeSlider = $( "#volume-slider" );
+		var volumeLabel = $( "#volume-label" );
+		positionSlider.on( 'input', function() {
+		  timelineController.p = positionSlider.val()/4096;
+		});
+		volumeSlider.on( 'input', function() {
+			AUD.volume = volumeSlider.val() / 100;
+		});
+		volumeSlider.val(25);
+		//
+		// download data
+		//
+
+		function launchEc2() {
+		  $.ajax({
+			url: 'data/test.json',
+			success: (data) => {
+			  updateUIControls(0);
+			  initializeData(data);
+			  layout(layouts);
+			  render(0);
+			}
+		  });
+		}
+		launchEc2();
+    const p1 = v3(0,25,50);
+    const l1 = v3(-20,0,0);
+    const p2 = v3(0,15,60);
+    const l2 = v3(0,0,0);
+    const p3 = v3(40,15,60);
+    const l3 = v3(0,0,0);
+
+		function loadNext() {
+		    let file = dataFiles[loaded];
+            $.ajax({
+              url: file,
+              success: (data) => {
+                updateUIControls(0);
+			    marshallData(data);
+                if (++loaded >= dataFiles.length) {
+    			  initializeData();
+                  updateData({data: timelineController.timeline.lrf.data});
+                  layout();
+                  render(0);
+                }
+                else {
+                    loadNext();
+                }
+              }
+            });
+        }
+		loadNext();
+
+    function cameraMove(des_position, cam_lookAt, durationTime) {
+        var cur_position = new THREE.Vector3().copy( camera.position );
+        var tween = new TWEEN.Tween(cur_position)
+            .to(des_position, durationTime)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .onUpdate(function () {
+                camera.position.copy(cur_position);
+                camera.lookAt(cam_lookAt);
+                }
+            ).start();
+    }
+	function render( t ) {
+		  T = t; // globalize time
+
+		  timelineController.update( t );
+		  updateUIControls( t );
+		  // use filtered t for animation updates
+		  let tt = animationFilter( t );
+		  for (c in COMPONENTS) {
+			COMPONENTS[c].update( tt );
+		  }
+
+		  // render scene from camera
+		  renderer.render( scene, camera );
+
+		  TWEEN.update();
+		  requestAnimationFrame( render );
+		}
+
+    $(document).on('mousemove', function(event) {DIALOGUE.handleMouseMove(event)});
+
+    cameraMove(p3, l3, 1000);
+    setTimeout(function() { cameraMove(p2, l2, 2000);}, 1250);
+  </script>
+        <button href="#" onclick="jamz();">VIBE</button>
+    </p>
+</div>
+
+</body>
+</html>
